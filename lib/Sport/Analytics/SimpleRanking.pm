@@ -11,11 +11,11 @@ Sport::Analytics::SimpleRanking - This module provides a method that calculate D
 
 =head1 VERSION
 
-Version 0.12
+Version 0.14
 
 =cut
 
-our $VERSION = '0.12';
+our $VERSION = '0.14';
 
 =head1 SYNOPSIS
 
@@ -271,7 +271,7 @@ sub avg_score {
     return $self->{total}{total_scores}/( 2.0*$self->{total_games} );
 }
 
-=head2 team_stats
+=head3 team_stats()
 
  my $teams = $stats->team_stats();
  for (sort keys %$teams) {
@@ -806,7 +806,7 @@ Happens if you pass more than 1,000,000 games to this method.
  Method add_data requires a reference to a games array.
 
 Either no data passed to add_data, or the wrong kind of data has been passed to add_data.
-arrays should be dereferenced: C<\@array>.
+Arrays should be dereferenced: C<\@array>.
 
  The home score is undefined in array element X. Perhaps you have missed a comma?
  
@@ -824,9 +824,9 @@ The fourth field in a game string needs to be a number.
 
 Happens if you pass more than 1000 teams to this method.
 
-The number of games in this data set is exceptionally large.
+ The number of games in this data set is exceptionally large.
  
- Happens if you pass more than 1,000,000 games to this method.
+Happens if you pass more than 1,000,000 games to this method.
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
@@ -846,8 +846,8 @@ David Myers, C<< <dwm042 at email.com> >>
 
 =head1 REFERENCES
 
-  algorithm: L<http://www.pro-football-reference.com/blog/?p=37>
-  original Perl implementation: L<http://codeandfootball.wordpress.com/2011/04/10/the-simple-ranking-system-a-perl-implementation/>
+  algorithm: L<http://www.pro-football-reference.com/blog/?p=37|Doug's article>
+  original Perl implementation: L<http://codeandfootball.wordpress.com/2011/04/10/the-simple-ranking-system-a-perl-implementation/|blog article>
 
 =head1 BUGS AND LIMITATIONS
 

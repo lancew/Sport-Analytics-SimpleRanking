@@ -45,7 +45,7 @@ my $shortgames2 = [
 eval { $stats->load_data( $shortgames2 ) };
 $@ = 0 unless ( $@ );
 
-like( $@, qr/requires team Fairbanks/, "Object does not load insufficient games");
+like( $@, qr/requires team \w+/, "Object does not load insufficient games");
 
 my $games = [
     "Boston,13,Atlanta, 27",

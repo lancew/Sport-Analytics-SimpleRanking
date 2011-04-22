@@ -1,5 +1,7 @@
 Revision history for Sport-Analytics-SimpleRanking
 
+0.14    2011/04/21
+        Fixing POD, fixing tests as test results come in.
 0.12    2011/04/20
         Cleaned up POD.
 0.10    2011/04/19
