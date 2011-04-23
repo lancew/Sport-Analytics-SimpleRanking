@@ -11,11 +11,11 @@ Sport::Analytics::SimpleRanking - This module provides a method that calculate D
 
 =head1 VERSION
 
-Version 0.14
+Version 0.20
 
 =cut
 
-our $VERSION = '0.14';
+our $VERSION = '0.20';
 
 =head1 SYNOPSIS
 
@@ -67,7 +67,7 @@ return 1;
 
 =head3 new()
 
- my $stats = SPORT::Analytics::SimpleRanking->new()
+ my $stats = Sport::Analytics::SimpleRanking->new()
 
 Output: a working SimpleRanking object.
 
@@ -275,7 +275,7 @@ sub avg_score {
 
  my $teams = $stats->team_stats();
  for (sort keys %$teams) {
-     printf "%s:  %3d-%3d-%3d\n", $team{$_}{wins},$team{$_}{losses},$team{$_}{ties};
+     printf "%s:  %3d-%3d-%3d\n", $_, $team{$_}{wins}, $team{$_}{losses}, $team{$_}{ties};
  }
 
 Input: none required
@@ -320,6 +320,138 @@ sub team_stats {
         }
     return \%team;
 }
+
+=head3 pythag()
+
+The Pythagorean formula is a rule of thumb that estimates winning percentage from points scored and points allowed. 
+
+ Estimated Winning Percentage = (Pts Scored)**N/( (Pts Scored)**N + (Pts Allowed)**N )
+
+In the original Bill James formulation, the power of the Pythagorean formula, N, is 2. This implementation can calculate the
+Pythagorean power from the game data set itself.
+
+
+ my $teams = $stats->team_stats();
+ my $predicted = $stats->pythag();
+ for (sort keys %$teams) {
+     printf "%s:  %6.2f %6.2f\n", $_, $team{$_}{win_pct}, $predicted{$_};
+ }
+
+Input:  If none given, will assume N = 2. 
+
+ my $predicted = $stats->pythag();
+
+If input is a number, that number will be used to calculate the power of the Pythagorean prediction.
+
+ my $predicted = $stats->pythag(2.5);
+
+If input is a reference to a scalar, and the option 'best => 1' is used, then this program will use a golden mean search to find the best fit value of N, and return the value in the reference provided.
+
+ my $predicted = $stats->pythag( \$exp, best => 1 );
+
+Output: 
+
+A hash reference with team names as keys and predicted winning percentage as values.
+
+This function will return an empty hash reference if data have not yet been loaded.
+
+=cut
+
+sub pythag {
+    my ( $self, $exp, %opt ) = @_;
+
+    if ( !$self->{loaded} ) {
+        carp "No data are loaded presently.";
+        return {};
+    }
+
+    my $power = 2.0;
+    if ( $exp ) {
+        if ( $opt{best} ) {
+            if ( ref($exp) eq 'SCALAR' ) {
+                $$exp = $self->_py_sect();
+                $power = $$exp;
+            }
+        }
+        else { 
+            $power = $exp;
+        }
+    };
+    my %pred;
+    for my $t ( sort keys %{ $self->{team} } ) {
+        $pred{$t} = $self->_py_calc( $self->{team}{$t}{points_for}, $self->{team}{$t}{points_against}, $power );
+    }
+    return \%pred;
+}
+
+sub _py_calc {
+    my $self = shift;
+    my $pf = shift;
+    my $pa = shift;
+    my $power = shift;
+    $power ||= 2.0;
+    return ( $pf**$power) / ( $pf**$power + $pa**$power );
+}
+
+sub _py_fit {
+    my  ($self, $exp ) = @_;
+    my $ssq = 0;
+    for my $t ( keys % { $self->{team} } ) {
+        my $calc = $self->_py_calc( $self->{team}{$t}{points_for}, $self->{team}{$t}{points_against}, $exp );
+        $ssq += ( $self->{team}{$t}{win_pct} - $calc )**2;
+    }
+    return $ssq;
+}
+
+sub _py_sect {
+    my $self = shift;
+    my $lo = 0.0;
+    my $mmin = $self->_py_fit( 2.0 );
+    my $mid = 2.0;
+    for my $t ( 1 .. 20 ) {
+        my $test = $self->_py_fit( $t );
+        if ( $test < $mmin ) {
+            $mmin = $test;
+            $mid = $t;
+        }
+    }
+    my $hi = 25.0;
+    my $tol = 0.001;
+    my $g = $self->_golden_ratio();
+    my $one_minus_g = 1.0 - $g;
+    my @p;
+    my @f;
+    $p[0] = $lo;
+    $p[1] = $mid;
+    $p[2] = $mid + $g*($hi - $mid );
+    $p[3] = $hi;
+    $f[1] = $self->_py_fit( $p[1] );
+    $f[2] = $self->_py_fit( $p[2] );
+    while ( abs( $p[3] - $p[0] )  > $tol ) {
+        if ( $f[2] < $f[1] ) {
+            $p[0] = $p[1];
+            $p[1] = $p[2];
+            $p[2] = $one_minus_g*$p[1] + $g*$p[3];
+            $f[1] = $f[2];
+            $f[2] = $self->_py_fit( $p[2] );
+        }
+        else {
+            $p[3] = $p[2];
+            $p[2] = $p[1];
+            $p[1] = $one_minus_g*$p[2] + $g*$p[0];
+            $f[2] = $f[1];
+            $f[1] = $self->_py_fit( $p[1] );
+        }
+    }
+    return $f[2] > $f[1] ? $p[1] : $p[2];
+}
+
+sub _golden_ratio {
+    my $self = shift;
+    return ( 3.0 - sqrt(5))/2 ;
+}
+
+
 
 =head2 ALGORITHM COMPONENTS
 
@@ -398,7 +530,7 @@ Input: none required, options possible.
 Example:
 
  my $stats = Sport::Analytics::SimpleRanking->new();
- $stats->loadData( \@games );
+ $stats->load_data( \@games );
  my $srs = $stats->simpleranking( verbose => 1 );
  my $mov = $stats->mov();
  my $sos = $stats->sos();
@@ -415,7 +547,7 @@ Options:
 
     maxiter => value
 
-    This is a stopgap to prevent runaways. Usually unnecessary as this algorithm converges within a couple dozen steps.
+    A stopgap to prevent runaways. Usually unnecessary as this algorithm converges rapidly.
 
     verbose => value
 
@@ -632,6 +764,10 @@ sub load_data {
         my $team_diff =
           $self->{team}{$t}{points} / $self->{team}{$t}{games_played};
         $self->{team}{$t}{mov} = $team_diff;
+        $self->{team}{$t}{wins} ||=  0;
+        $self->{team}{$t}{ties} ||=  0;
+        $self->{team}{$t}{losses} ||=  0;
+        $self->{team}{$t}{win_pct} = ($self->{team}{$t}{wins} + 0.5*$self->{team}{$t}{ties})/ $self->{team}{$t}{games_played};
     }
     $self->{loaded} = 1;
     return $self->{loaded};
@@ -744,6 +880,10 @@ sub add_data {
         my $team_diff =
           $self->{team}{$t}{points} / $self->{team}{$t}{games_played};
         $self->{team}{$t}{mov} = $team_diff;
+        $self->{team}{$t}{wins} ||=  0;
+        $self->{team}{$t}{ties} ||=  0;
+        $self->{team}{$t}{losses} ||=  0;
+        $self->{team}{$t}{win_pct} = ($self->{team}{$t}{wins} + 0.5*$self->{team}{$t}{ties})/ $self->{team}{$t}{games_played};
     }
     $self->{loaded} = 1;
     $self->{calc} = 0;
@@ -846,8 +986,9 @@ David Myers, C<< <dwm042 at email.com> >>
 
 =head1 REFERENCES
 
-  algorithm: L<http://www.pro-football-reference.com/blog/?p=37|Doug's article>
-  original Perl implementation: L<http://codeandfootball.wordpress.com/2011/04/10/the-simple-ranking-system-a-perl-implementation/|blog article>
+  algorithm: L<http://www.pro-football-reference.com/blog/?p=37>
+  original Perl implementation: L<http://wp.me/p1m41i-8p>
+  Pythagorean formula: L<http://en.wikipedia.org/wiki/Pythagorean_expectation>
 
 =head1 BUGS AND LIMITATIONS
 

@@ -1,6 +1,6 @@
 #!perl -T
 
-use Test::More tests => 15;
+use Test::More tests => 20;
 
 BEGIN {
     use_ok( 'Sport::Analytics::SimpleRanking' ) || print "Bail out!
@@ -117,3 +117,21 @@ my $team_data = $stats->team_stats();
 
 is ( $team_data->{NE}->{wins}, 16, 'New England won 16 games in 2007');
 is ( $team_data->{NYG}->{wins}, 10, 'New York won 10 games in 2007');
+is ( $team_data->{PHI}->{points_for}, 336, 'Philadelphia scored 336 points in 2007');
+is ( $team_data->{PHI}->{points_against}, 300, 'Philadelphia allowed 300 points in 2007');
+
+my $pred2 = $stats->pythag();
+
+cmp_ok(abs( $pred2->{PHI} - 0.5564),'<',0.0001,"Philadelphia Pythag in 2007 with exponent 2 is about .5664");
+
+diag( "Comparing calculated values to one found on Pro Football Reference here:\n" );
+diag( "http://www.pro-football-reference.com/teams/phi/2007.htm\n" );
+
+my $pred237 = $stats->pythag(2.37);
+
+cmp_ok(abs( 16*$pred237->{PHI} - 9.1),'<',0.1,"Philadelphia Pythag in 2007 with exponent 2.37 is about 9.1 wins");
+
+my $exponent;
+my $predicted = $stats->pythag( \$exponent, best => 1 );
+
+cmp_ok(abs($exponent - 2.508),'<',0.01,"2007 Pythagorean best fit to exponent is about 2.508");
