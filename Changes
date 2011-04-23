@@ -1,5 +1,8 @@
 Revision history for Sport-Analytics-SimpleRanking
 
+0.21    2011/04/23
+        On the basis of this discussion: https://ece.uwaterloo.ca/~dwharder/NumericalAnalysis/11Optimization/golden/
+        simplifying the implementation of the golden section search.
 0.20    2011/04/22
         Added pythag() method. More cleaning up POD. # bumped because of interface change.
 0.14    2011/04/21

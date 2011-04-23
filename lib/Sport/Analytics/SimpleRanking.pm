@@ -11,11 +11,11 @@ Sport::Analytics::SimpleRanking - This module provides a method that calculate D
 
 =head1 VERSION
 
-Version 0.20
+Version 0.21
 
 =cut
 
-our $VERSION = '0.20';
+our $VERSION = '0.21';
 
 =head1 SYNOPSIS
 
@@ -369,7 +369,12 @@ sub pythag {
     if ( $exp ) {
         if ( $opt{best} ) {
             if ( ref($exp) eq 'SCALAR' ) {
-                $$exp = $self->_py_sect();
+                if ( $opt{verbose} ) {
+                    $$exp = $self->_py_sect( verbose => 1 );
+                }
+                else {
+                    $$exp = $self->_py_sect();
+                }
                 $power = $$exp;
             }
         }
@@ -404,31 +409,27 @@ sub _py_fit {
 }
 
 sub _py_sect {
-    my $self = shift;
+    my ( $self, %opt ) = @_;
     my $lo = 0.0;
-    my $mmin = $self->_py_fit( 2.0 );
-    my $mid = 2.0;
-    for my $t ( 1 .. 20 ) {
-        my $test = $self->_py_fit( $t );
-        if ( $test < $mmin ) {
-            $mmin = $test;
-            $mid = $t;
-        }
-    }
     my $hi = 25.0;
     my $tol = 0.001;
     my $g = $self->_golden_ratio();
     my $one_minus_g = 1.0 - $g;
     my @p;
     my @f;
+#
+# if [  $lo, $hi ] is an interval in which a minimum is found, choose points so that
+# p[1] = ~ 2/3 lo + ~ 1/3 hi and p[2] = ~ 1/3 lo + ~ 2/3 hi. 
+#
     $p[0] = $lo;
-    $p[1] = $mid;
-    $p[2] = $mid + $g*($hi - $mid );
     $p[3] = $hi;
+    $p[1] = $one_minus_g*$p[0] + $g*$p[3];
+    $p[2] = $g*$p[0] + $one_minus_g*$p[3];
     $f[1] = $self->_py_fit( $p[1] );
     $f[2] = $self->_py_fit( $p[2] );
     while ( abs( $p[3] - $p[0] )  > $tol ) {
         if ( $f[2] < $f[1] ) {
+            print "Low = $p[1]\n" if ( $opt{verbose} );
             $p[0] = $p[1];
             $p[1] = $p[2];
             $p[2] = $one_minus_g*$p[1] + $g*$p[3];
@@ -436,6 +437,7 @@ sub _py_sect {
             $f[2] = $self->_py_fit( $p[2] );
         }
         else {
+            print "High = $p[2]\n" if ( $opt{verbose} );
             $p[3] = $p[2];
             $p[2] = $p[1];
             $p[1] = $one_minus_g*$p[2] + $g*$p[0];
