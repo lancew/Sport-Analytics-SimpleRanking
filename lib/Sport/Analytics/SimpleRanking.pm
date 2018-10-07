@@ -1,7 +1,8 @@
 package Sport::Analytics::SimpleRanking;
 
-use warnings;
 use strict;
+use warnings;
+
 use List::Util qw( max );
 use Carp;
 
@@ -56,10 +57,6 @@ In the simple ranking system, a = 1 and b = 1/(number of opponents played). Matr
 One more note, though commonly described as N equations in N unknowns, an additional constraint is required to solve to a single unique answer, and that is that the sum of all simple rankings must add up to 0.0. This also guarantees that the average club in a season has a ranking of zero. 
 
 =cut
-
-package Sport::Analytics::SimpleRanking;
-
-return 1;
 
 =head1 METHODS
 
@@ -747,15 +744,15 @@ sub load_data {
         $self->{total_games}++;
     }
     croak("Method load_data requires at least two games to analyze data.")
-      unless ( $self->{total_games} > 1 );
+      if ( $self->{total_games} < 2);
     $self->{total_team} = scalar keys %{ $self->{team} };
     croak("Method load_data requires at least two teams.")
-      unless ( $self->{total_team} > 1 );
+      if ( $self->{total_team} < 2 );
     croak("Method load_data requires at least as many games as teams.")
       unless (  $self->{total_team} <= $self->{total_games} );
     for my $t ( keys %{ $self->{team} } ) {
         croak("Method load_data requires team $t to have played at least two games.")
-          unless ( $self->{team}{$t}{games_played} > 1 );
+          if ( $self->{team}{$t}{games_played} < 2 );
     }
     carp("The number of teams in this data set is exceptionally large.")
       if ( $self->{total_team} > $self->{warnTeam} );
